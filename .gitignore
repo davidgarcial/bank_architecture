@@ -1,1 +1,3 @@
 **/target
+**/.env
+user_management/.env
