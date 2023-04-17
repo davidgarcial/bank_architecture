@@ -6,7 +6,7 @@ use crate::{
         token_claims::TokenClaims
     },
     AppState,
-    grpc_clients::user_grpc_client::user_management::{CreateUserRequest, GetUserByUserNameRequest, GetUserByIdRequest}
+    grpc_clients::user_grpc_client::user_service::{CreateUserRequest, GetUserByUserNameRequest, GetUserByIdRequest}
 };
 
 use actix_web::{

@@ -1,0 +1,28 @@
+syntax = "proto3";
+
+package historical;
+
+service HistoricalService {
+  rpc GetTransactionHistory(GetTransactionHistoryRequest) returns (GetTransactionHistoryResponse);
+}
+
+message GetTransactionHistoryRequest {
+  string account_id = 1;
+}
+
+message GetTransactionHistoryResponse {
+  repeated Transaction transactions = 1;
+}
+
+message Transaction {
+  string transaction_id = 1;
+  string account_id = 2;
+  TransactionType transaction_type = 3;
+  double amount = 4;
+  int64 timestamp = 5;
+}
+
+enum TransactionType {
+  DEPOSIT = 0;
+  WITHDRAWAL = 1;
+}

@@ -1,8 +1,8 @@
-pub mod user_management {
-    tonic::include_proto!("user_management");
+pub mod user_service {
+    tonic::include_proto!("user_service");
 }
 
-use user_management::{user_service_client::UserServiceClient};
+use user_service::{user_service_client::UserServiceClient};
 use tonic::transport::Channel;
 
 pub async fn get_user_grpc_client(

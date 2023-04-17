@@ -3,7 +3,7 @@ use dotenv::dotenv;
 use tonic::transport::Server;
 
 mod user_service;
-use user_service::{MyUserService, user_management::user_service_server::UserServiceServer};
+use user_service::{MyUserService, user_service::user_service_server::UserServiceServer};
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {

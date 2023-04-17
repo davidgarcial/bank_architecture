@@ -14,7 +14,7 @@ use tonic::transport::Channel;
 use crate::models::config::Config;
 
 use crate::grpc_clients::user_grpc_client::get_user_grpc_client;
-use crate::grpc_clients::user_grpc_client::user_management::user_service_client::UserServiceClient;
+use crate::grpc_clients::user_grpc_client::user_service::user_service_client::UserServiceClient;
 
 use crate::grpc_clients::account_grpc_client::get_account_grpc_client;
 use crate::grpc_clients::account_grpc_client::account::account_service_client::AccountServiceClient;

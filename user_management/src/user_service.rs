@@ -9,12 +9,12 @@ use mongodb::{
     {options::ClientOptions, Client}
 };
 
-pub mod user_management {
-    tonic::include_proto!("user_management");
+pub mod user_service {
+    tonic::include_proto!("user_service");
 }
 
-use user_management::user_service_server::{UserService};
-use user_management::{
+use user_service::user_service_server::UserService;
+use user_service::{
     CreateUserRequest, CreateUserResponse, 
     DeleteUserRequest, DeleteUserResponse, 
     GetUserByIdRequest, GetUserByUserNameRequest, GetUserResponse, 
@@ -35,7 +35,7 @@ use user_management::{
 // to the data when it is being modified.
 #[derive(Debug, Clone)]
 pub struct MyUserService {
-    db: Arc<mongodb::Database>,
+    db: Arc<mongodb::Database>
 }
 
 impl MyUserService {
@@ -73,7 +73,7 @@ impl UserService for MyUserService {
             .map_err(|e| Status::internal(format!("Failed to create user: {}", e)))?;
     
         let response = CreateUserResponse {
-            id: insert_result.inserted_id.as_object_id().unwrap().to_string(),
+            id: insert_result.inserted_id.as_object_id().unwrap().to_string()
         };
     
         Ok(Response::new(response))
@@ -87,7 +87,7 @@ impl UserService for MyUserService {
         let users_collection: Collection<Document> = self.db.collection("users");
 
         let filter = doc! {
-            "username": &req.username,
+            "username": &req.username
         };
     
         let user_doc_option = users_collection
@@ -100,7 +100,7 @@ impl UserService for MyUserService {
                 id: user_doc.get_object_id("_id").unwrap().to_string(),
                 uuid: user_doc.get_str("uuid").unwrap().to_string(),
                 username: user_doc.get_str("username").unwrap().to_string(),
-                password: user_doc.get_str("password").unwrap().to_string(),
+                password: user_doc.get_str("password").unwrap().to_string()
             };
     
             Ok(Response::new(response))
@@ -148,17 +148,17 @@ impl UserService for MyUserService {
     
         let object_id = match ObjectId::from_str(&req.id) {
             Ok(oid) => oid,
-            Err(_) => return Err(Status::invalid_argument("Invalid user id")),
+            Err(_) => return Err(Status::invalid_argument("Invalid user id"))
         };
     
         let filter = doc! {
-            "_id": object_id,
+            "_id": object_id
         };
     
         let update = doc! {
             "$set": {
                 "username": req.username,
-                "password": req.password,
+                "password": req.password
             }
         };
     
@@ -183,11 +183,11 @@ impl UserService for MyUserService {
     
         let object_id = match ObjectId::from_str(&req.id) {
             Ok(oid) => oid,
-            Err(_) => return Err(Status::invalid_argument("Invalid user id")),
+            Err(_) => return Err(Status::invalid_argument("Invalid user id"))
         };
     
         let filter = doc! {
-            "_id": object_id,
+            "_id": object_id
         };
     
         let delete_result = users_collection
