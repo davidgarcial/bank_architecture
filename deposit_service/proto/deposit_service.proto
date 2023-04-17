@@ -1,0 +1,26 @@
+syntax = "proto3";
+
+package deposit;
+
+service DepositService {
+  rpc MakeDeposit(MakeDepositRequest) returns (MakeDepositResponse);
+  rpc CheckAccountBalance(CheckAccountBalanceRequest) returns (CheckAccountBalanceResponse);
+}
+
+message MakeDepositRequest {
+  string account_id = 1;
+  double amount = 2;
+  bool is_bank_agent = 3;
+}
+
+message MakeDepositResponse {
+  string transaction_id = 1;
+}
+
+message CheckAccountBalanceRequest {
+  string account_id = 1;
+}
+
+message CheckAccountBalanceResponse {
+  double balance = 1;
+}

@@ -1,0 +1,25 @@
+syntax = "proto3";
+
+package withdrawal;
+
+service WithdrawalService {
+  rpc MakeWithdrawal(MakeWithdrawalRequest) returns (MakeWithdrawalResponse);
+  rpc CheckAccountBalance(CheckAccountBalanceRequest) returns (CheckAccountBalanceResponse);
+}
+
+message MakeWithdrawalRequest {
+  string account_id = 1;
+  double amount = 2;
+}
+
+message MakeWithdrawalResponse {
+  string transaction_id = 1;
+}
+
+message CheckAccountBalanceRequest {
+  string account_id = 1;
+}
+
+message CheckAccountBalanceResponse {
+  double balance = 1;
+}
