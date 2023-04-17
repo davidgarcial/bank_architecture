@@ -7,6 +7,7 @@ pub struct Config {
     pub account_grpc_uri: String,
     pub deposit_grpc_uri: String,
     pub withdrawal_grpc_uri: String,
+    pub historical_grpc_uri: String,
 }
 
 impl Config {
@@ -18,6 +19,7 @@ impl Config {
         let account_grpc_uri = std::env::var("ACCOUNT_GRPC_SERVICE_URL").expect("ACCOUNT_GRPC_SERVICE_URL must be set");
         let deposit_grpc_uri = std::env::var("DEPOSIT_GRPC_SERVICE_URL").expect("DEPOSIT_GRPC_SERVICE_URL must be set");
         let withdrawal_grpc_uri = std::env::var("WITHDRAWAL_GRPC_SERVICE_URL").expect("WITHDRAWAL_GRPC_SERVICE_URL must be set");
+        let historical_grpc_uri = std::env::var("HISTORICAL_GRPC_SERVICE_URL").expect("HISTORICAL_GRPC_SERVICE_URL must be set");
         
         Config {
             jwt_secret,
@@ -26,7 +28,8 @@ impl Config {
             user_grpc_uri,
             account_grpc_uri,
             deposit_grpc_uri,
-            withdrawal_grpc_uri
+            withdrawal_grpc_uri,
+            historical_grpc_uri
         }
     }
 }

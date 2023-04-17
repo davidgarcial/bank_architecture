@@ -25,12 +25,16 @@ use crate::grpc_clients::deposit_grpc_client::deposit::deposit_service_client::D
 use crate::grpc_clients::withdrawal_grpc_client::get_withdrawal_grpc_client;
 use crate::grpc_clients::withdrawal_grpc_client::withdrawal::withdrawal_service_client::WithdrawalServiceClient;
 
+use crate::grpc_clients::historical_grpc_client::get_historical_grpc_client;
+use crate::grpc_clients::historical_grpc_client::historical::historical_service_client::HistoricalServiceClient;
+
 pub struct AppState {
     env: Config,
     user_grpc_client: UserServiceClient<Channel>,
     account_grpc_client: AccountServiceClient<Channel>,
     deposit_grpc_client: DepositServiceClient<Channel>,
-    withdrawal_grpc_client: WithdrawalServiceClient<Channel>
+    withdrawal_grpc_client: WithdrawalServiceClient<Channel>,
+    historical_grpc_client: HistoricalServiceClient<Channel>
 }
 
 #[actix_web::main]
@@ -85,6 +89,17 @@ async fn main() -> std::io::Result<()> {
         }
     };
 
+    let historical_grpc_client = match get_historical_grpc_client(config.historical_grpc_uri.clone()).await {
+        Ok(client) => {
+            info!("✅ Connection to the historical gRPC service is successful!");
+            client
+        }
+        Err(err) => {
+            error!("❌ Failed to connect to the historical gRPC service: {:?}", err);
+            std::process::exit(1);
+        }
+    };
+
     info!("✅ Server started successfully");
 
     // Create an Actix HTTP server instance.
@@ -123,6 +138,7 @@ async fn main() -> std::io::Result<()> {
                     account_grpc_client: account_grpc_client.clone(),
                     deposit_grpc_client: deposit_grpc_client.clone(),
                     withdrawal_grpc_client: withdrawal_grpc_client.clone(),
+                    historical_grpc_client: historical_grpc_client.clone()
                 }))
                 // Register handlers for various routes and resources.
                 .service(handlers::healt_handler::health_checker_handler)
