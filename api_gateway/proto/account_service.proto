@@ -1,0 +1,51 @@
+syntax = "proto3";
+
+package account;
+
+import "google/protobuf/timestamp.proto";
+
+service AccountService {
+  rpc CreateAccount(CreateAccountRequest) returns (CreateAccountResponse);
+  rpc GetAccount(GetAccountRequest) returns (GetAccountResponse);
+  rpc UpdateAccount(UpdateAccountRequest) returns (UpdateAccountResponse);
+}
+
+message CreateAccountRequest {
+  string user_id = 1;
+  AccountType account_type = 2;
+}
+
+message CreateAccountResponse {
+  string account_id = 1;
+}
+
+message GetAccountRequest {
+  string account_id = 1;
+}
+
+message GetAccountResponse {
+  Account account = 1;
+}
+
+message UpdateAccountRequest {
+  string account_id = 1;
+  double balance = 2;
+}
+
+message UpdateAccountResponse {
+  Account account = 1;
+}
+
+message Account {
+  string account_id = 1;
+  string user_id = 2;
+  AccountType account_type = 3;
+  double balance = 4;
+  google.protobuf.Timestamp created_at = 5;
+  google.protobuf.Timestamp updated_at = 6;
+}
+
+enum AccountType {
+  CHECKING = 0;
+  SAVINGS = 1;
+}

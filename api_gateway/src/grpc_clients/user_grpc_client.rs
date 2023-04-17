@@ -5,7 +5,7 @@ pub mod user_management {
 use user_management::{user_service_client::UserServiceClient};
 use tonic::transport::Channel;
 
-pub async fn get_grpc_client(
+pub async fn get_user_grpc_client(
     uri: String,
 ) -> Result<UserServiceClient<Channel>, Box<dyn std::error::Error>> {
     let grpc_uri = format!("http://{}", uri); 

@@ -6,7 +6,7 @@ use crate::{
         token_claims::TokenClaims
     },
     AppState,
-    user_management_client::user_management::{CreateUserRequest, GetUserByUserNameRequest, GetUserByIdRequest}
+    grpc_clients::user_grpc_client::user_management::{CreateUserRequest, GetUserByUserNameRequest, GetUserByIdRequest}
 };
 
 use actix_web::{
@@ -26,9 +26,12 @@ async fn health_checker_handler() -> impl Responder {
 }
 
 #[post("/register")]
-async fn register_user_handler(body: web::Json<RegisterUserSchema>, data: web::Data<AppState>) -> impl Responder {
+async fn register_user_handler(
+    body: web::Json<RegisterUserSchema>,
+    data: web::Data<AppState>
+) -> impl Responder {
     // Check if exist the email
-    let mut grpc_client = data.user_management_client.clone();
+    let mut grpc_client = data.user_grpc_client.clone();
 
     let create_user_request = CreateUserRequest {
         username: body.email.clone(),
@@ -59,9 +62,12 @@ async fn register_user_handler(body: web::Json<RegisterUserSchema>, data: web::D
 }
 
 #[post("/login")]
-async fn login_user_handler(body: web::Json<LoginUserSchema>, data: web::Data<AppState>) -> impl Responder {
+async fn login_user_handler(
+    body: web::Json<LoginUserSchema>,
+    data: web::Data<AppState>
+) -> impl Responder {
     // Clone the gRPC client
-    let mut grpc_client = data.user_management_client.clone();
+    let mut grpc_client = data.user_grpc_client.clone();
 
     // Prepare the GetUserRequest
     let get_user_request = GetUserByUserNameRequest {
@@ -133,7 +139,9 @@ async fn login_user_handler(body: web::Json<LoginUserSchema>, data: web::Data<Ap
 }
 
 #[get("/logout")]
-async fn logout_handler(_: jwt_auth::JwtMiddleware) -> impl Responder {
+async fn logout_handler(
+    _: jwt_auth::JwtMiddleware
+) -> impl Responder {
     let cookie = Cookie::build("token", "")
         .path("/")
         .max_age(ActixWebDuration::new(-1, 0))
@@ -146,12 +154,16 @@ async fn logout_handler(_: jwt_auth::JwtMiddleware) -> impl Responder {
 }
 
 #[get("/users/me")]
-async fn get_me_handler(req: HttpRequest, data: web::Data<AppState>, _: jwt_auth::JwtMiddleware) -> impl Responder {
+async fn get_me_handler(
+    req: HttpRequest,
+    data: web::Data<AppState>,
+    _: jwt_auth::JwtMiddleware
+) -> impl Responder {
     let ext = req.extensions();
     let user_id = ext.get::<uuid::Uuid>().unwrap();
 
     // Clone the gRPC client
-    let mut grpc_client = data.user_management_client.clone();
+    let mut grpc_client = data.user_grpc_client.clone();
 
     // Prepare the GetUserRequest
     let get_user_request = GetUserByIdRequest {

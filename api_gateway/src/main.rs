@@ -3,7 +3,7 @@ mod handlers;
 mod jwt_auth;
 mod models;
 mod response;
-mod user_management_client;
+mod grpc_clients;
 
 use actix_cors::Cors;
 use actix_web::middleware::Logger;
@@ -13,13 +13,18 @@ use dotenv::dotenv;
 use env_logger::{Builder, Env};
 use log::{info, error};
 
-use crate::user_management_client::get_grpc_client;
-use crate::user_management_client::user_management::user_service_client::UserServiceClient;
+use crate::grpc_clients::user_grpc_client::get_user_grpc_client;
+use crate::grpc_clients::user_grpc_client::user_management::user_service_client::UserServiceClient;
+
+use crate::grpc_clients::account_grpc_client::get_account_grpc_client;
+use crate::grpc_clients::account_grpc_client::account::account_service_client::AccountServiceClient;
+
 use tonic::transport::Channel;
 
 pub struct AppState {
     env: Config,
-    user_management_client: UserServiceClient<Channel>
+    user_grpc_client: UserServiceClient<Channel>,
+    account_grpc_client: AccountServiceClient<Channel>,
 }
 
 #[actix_web::main]
@@ -30,13 +35,24 @@ async fn main() -> std::io::Result<()> {
 
     let config = Config::init();
 
-    let grpc_client = match get_grpc_client(config.grpc_user_management_service_url.clone()).await {
+    let user_grpc_client = match get_user_grpc_client(config.user_grpc_uri.clone()).await {
         Ok(client) => {
-            info!("✅ Connection to the gRPC service is successful!");
+            info!("✅ Connection to the user gRPC service is successful!");
             client
         }
         Err(err) => {
-            error!("❌ Failed to connect to the gRPC service: {:?}", err);
+            error!("❌ Failed to connect to the user gRPC service: {:?}", err);
+            std::process::exit(1);
+        }
+    };
+
+    let account_grpc_client = match get_account_grpc_client(config.account_grpc_uri.clone()).await {
+        Ok(client) => {
+            info!("✅ Connection to the  account gRPC service is successful!");
+            client
+        }
+        Err(err) => {
+            error!("❌ Failed to connect to the account gRPC service: {:?}", err);
             std::process::exit(1);
         }
     };
@@ -56,10 +72,12 @@ async fn main() -> std::io::Result<()> {
         App::new()
             .app_data(web::Data::new(AppState {
                 env: config.clone(),
-                user_management_client: grpc_client.clone()
+                user_grpc_client: user_grpc_client.clone(),
+                account_grpc_client: account_grpc_client.clone()
             }))
             .service(handlers::healt_handler::health_checker_handler)
             .configure(handlers::user_handler::config)
+            .configure(handlers::account_handlers::config)
             .wrap(cors)
             .wrap(Logger::default())
     })
