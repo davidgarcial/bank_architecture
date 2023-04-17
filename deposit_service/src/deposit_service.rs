@@ -12,7 +12,7 @@ pub mod deposit {
     tonic::include_proto!("deposit");
 }
 
-use deposit::deposit_service_server::{DepositService};
+use deposit::deposit_service_server::DepositService;
 use deposit::{
     MakeDepositRequest, MakeDepositResponse, 
     CheckAccountBalanceRequest, CheckAccountBalanceResponse
@@ -20,7 +20,7 @@ use deposit::{
 
 #[derive(Debug, Clone)]
 pub struct MyDepositService {
-    db: Arc<mongodb::Database>,
+    db: Arc<mongodb::Database>
 }
 
 impl MyDepositService {

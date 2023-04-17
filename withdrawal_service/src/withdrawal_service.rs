@@ -12,7 +12,7 @@ pub mod withdrawal {
     tonic::include_proto!("withdrawal");
 }
 
-use withdrawal::withdrawal_service_server::{WithdrawalService};
+use withdrawal::withdrawal_service_server::WithdrawalService;
 use withdrawal::{
     MakeWithdrawalRequest, MakeWithdrawalResponse,
     CheckAccountBalanceRequest, CheckAccountBalanceResponse
@@ -20,7 +20,7 @@ use withdrawal::{
 
 #[derive(Debug, Clone)]
 pub struct MyWithdrawalService {
-    db: Arc<mongodb::Database>,
+    db: Arc<mongodb::Database>
 }
 
 impl MyWithdrawalService {
@@ -102,7 +102,6 @@ impl WithdrawalService for MyWithdrawalService {
     
         Ok(Response::new(response))
     }
-    
     
     async fn check_account_balance(
         &self,

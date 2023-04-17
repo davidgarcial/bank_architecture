@@ -84,7 +84,7 @@ async fn get_account_handler(
                     "balance": account.balance
                 }
             })});
-            HttpResponse::Ok().json(json!({"status": "success", "data": {"account": account_response}}))
+            HttpResponse::Ok().json(account_response)
         },
         Err(e) => {
             HttpResponse::InternalServerError().json(json!({ "status": "error", "message": format!("{:?}", e) }))
@@ -119,7 +119,7 @@ async fn update_account_handler(
                     "balance": account.balance
                 }
             })});
-            HttpResponse::Ok().json(json!({"status": "success", "data": {"account": account_response}}))
+            HttpResponse::Ok().json(account_response)
         },
         Err(e) => {
             HttpResponse::InternalServerError().json(json!({ "status": "error", "message": format!("{:?}", e) }))
