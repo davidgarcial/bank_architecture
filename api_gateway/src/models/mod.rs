@@ -5,3 +5,4 @@ pub mod account;
 pub mod account_update_request;
 pub mod deposit_request;
 pub mod withdrawal_request;
+pub mod config;
