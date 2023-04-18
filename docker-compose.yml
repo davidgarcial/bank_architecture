@@ -3,6 +3,20 @@ version: '3.8'
 x-project-name: simple_bank
 
 services:
+  api_gateway:
+    build: ./api_gateway
+    container_name: api_gateway
+    ports:
+      - "5000:5000"
+    volumes:
+      - ./api_gateway/.env:/app/.env
+    depends_on:
+      - user_service
+      - account_service
+      - deposit_service
+      - withdrawal_service
+      - historical_service
+
   user_service:
     build:
       context: ./user_service
