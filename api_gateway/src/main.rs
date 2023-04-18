@@ -10,6 +10,8 @@ use dotenv::dotenv;
 use env_logger::{Builder, Env};
 use log::{info, error};
 use tonic::transport::Channel;
+use std::time::{Duration};
+use tokio;
 
 use crate::models::config::Config;
 
@@ -45,59 +47,74 @@ async fn main() -> std::io::Result<()> {
 
     let config = Config::init();
 
-    let user_grpc_client = match get_user_grpc_client(config.user_grpc_uri.clone()).await {
-        Ok(client) => {
-            info!("✅ Connection to the user gRPC service is successful!");
-            client
-        }
-        Err(err) => {
-            error!("❌ Failed to connect to the user gRPC service: {:?}", err);
-            std::process::exit(1);
-        }
+    let user_grpc_client = loop {
+        match get_user_grpc_client(config.user_grpc_uri.clone()).await {
+            Ok(client) => {
+                info!("✅ Connection to the user gRPC service is successful!");
+                break client;
+            }
+            Err(err) => {
+                error!("❌ Failed to connect to the user gRPC service: {:?}", err);
+                info!("Retrying in 3 seconds...");
+                tokio::time::sleep(Duration::from_secs(3)).await;
+            }
+        };
     };
-
-    let account_grpc_client = match get_account_grpc_client(config.account_grpc_uri.clone()).await {
-        Ok(client) => {
-            info!("✅ Connection to the account gRPC service is successful!");
-            client
-        }
-        Err(err) => {
-            error!("❌ Failed to connect to the account gRPC service: {:?}", err);
-            std::process::exit(1);
-        }
+    
+    let account_grpc_client = loop {
+        match get_account_grpc_client(config.account_grpc_uri.clone()).await {
+            Ok(client) => {
+                info!("✅ Connection to the account gRPC service is successful!");
+                break client;
+            }
+            Err(err) => {
+                error!("❌ Failed to connect to the account gRPC service: {:?}", err);
+                info!("Retrying in 3 seconds...");
+                tokio::time::sleep(Duration::from_secs(3)).await;
+            }
+        };
     };
-
-    let deposit_grpc_client = match get_deposit_grpc_client(config.deposit_grpc_uri.clone()).await {
-        Ok(client) => {
-            info!("✅ Connection to the deposit gRPC service is successful!");
-            client
-        }
-        Err(err) => {
-            error!("❌ Failed to connect to the deposit gRPC service: {:?}", err);
-            std::process::exit(1);
-        }
+    
+    let deposit_grpc_client = loop {
+        match get_deposit_grpc_client(config.deposit_grpc_uri.clone()).await {
+            Ok(client) => {
+                info!("✅ Connection to the deposit gRPC service is successful!");
+                break client;
+            }
+            Err(err) => {
+                error!("❌ Failed to connect to the deposit gRPC service: {:?}", err);
+                info!("Retrying in 3 seconds...");
+                tokio::time::sleep(Duration::from_secs(3)).await;
+            }
+        };
     };
+    
+    let withdrawal_grpc_client = loop {
+        match get_withdrawal_grpc_client(config.withdrawal_grpc_uri.clone()).await {
+            Ok(client) => {
+                info!("✅ Connection to the withdrawal gRPC service is successful!");
+                break client;
+            }
+            Err(err) => {
+                error!("❌ Failed to connect to the withdrawal gRPC service: {:?}", err);
+                info!("Retrying in 3 seconds...");
+                tokio::time::sleep(Duration::from_secs(3)).await;
+            }
+        };
+    };    
 
-    let withdrawal_grpc_client = match get_withdrawal_grpc_client(config.withdrawal_grpc_uri.clone()).await {
-        Ok(client) => {
-            info!("✅ Connection to the withdrawal gRPC service is successful!");
-            client
-        }
-        Err(err) => {
-            error!("❌ Failed to connect to the withdrawal gRPC service: {:?}", err);
-            std::process::exit(1);
-        }
-    };
-
-    let historical_grpc_client = match get_historical_grpc_client(config.historical_grpc_uri.clone()).await {
-        Ok(client) => {
-            info!("✅ Connection to the historical gRPC service is successful!");
-            client
-        }
-        Err(err) => {
-            error!("❌ Failed to connect to the historical gRPC service: {:?}", err);
-            std::process::exit(1);
-        }
+    let historical_grpc_client = loop {
+        match get_historical_grpc_client(config.historical_grpc_uri.clone()).await {
+            Ok(client) => {
+                info!("✅ Connection to the historical gRPC service is successful!");
+                break client;
+            }
+            Err(err) => {
+                error!("❌ Failed to connect to the historical gRPC service: {:?}", err);
+                info!("Retrying in 3 seconds...");
+                tokio::time::sleep(Duration::from_secs(3)).await;
+            }
+        };
     };
 
     info!("✅ Server started successfully");
