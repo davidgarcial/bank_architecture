@@ -1,7 +1,6 @@
 use tonic::{Request, Response, Status};
 use prost_types::Timestamp;
 use bson::Bson;
-use uuid::Uuid;
 
 use std::{
     fmt::{self, Display, Formatter},
@@ -82,6 +81,14 @@ impl MyAccountService {
     }
 }
 
+pub fn account_type_to_string(value: i32) -> String {
+    match value {
+        0 => "CHECKING".to_string(),
+        1 => "SAVINGS".to_string(),
+        _ => panic!("Invalid account type value: {}", value)
+    }
+}
+
 #[tonic::async_trait]
 impl AccountService for MyAccountService {
     async fn create_account(
@@ -92,9 +99,8 @@ impl AccountService for MyAccountService {
         let accounts_collection: Collection<Document> = self.db.collection("accounts");
 
         let new_account = doc! {
-            "uuid": Uuid::new_v4().to_string(),
             "user_id": req.user_id,
-            "account_type": req.account_type.to_string(),
+            "account_type": account_type_to_string(req.account_type),
             "balance": 0.0
         };
 
@@ -103,8 +109,14 @@ impl AccountService for MyAccountService {
             .await
             .map_err(|e| Status::internal(format!("Failed to create account: {}", e)))?;
 
+        let account_id = insert_result
+            .inserted_id
+            .as_object_id()
+            .map(|id| id.to_hex())
+            .ok_or_else(|| Status::internal("Failed to create account: missing inserted_id".to_string()))?;
+
         let response = CreateAccountResponse {
-            account_id: insert_result.inserted_id.as_str().unwrap().to_string(),
+            account_id,
         };
 
         Ok(Response::new(response))
@@ -117,8 +129,13 @@ impl AccountService for MyAccountService {
         let req = request.into_inner();
         let accounts_collection: Collection<Document> = self.db.collection("accounts");
 
+        let account_id  = match ObjectId::from_str(&req.account_id) {
+            Ok(oid) => oid,
+            Err(_) => return Err(Status::invalid_argument("Invalid account id")),
+        };
+
         let filter = doc! {
-            "_id": &req.account_id,
+            "_id": account_id,
         };
 
         let account_doc_option = accounts_collection
@@ -205,5 +222,4 @@ impl AccountService for MyAccountService {
     
         Ok(Response::new(response))
     }
-    
 }

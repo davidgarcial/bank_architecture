@@ -100,7 +100,7 @@ impl WithdrawalService for MyWithdrawalService {
         let new_transaction = doc! {
             "account_id": object_id,
             "amount": req.amount,
-            "type": "withdrawal",
+            "type": "Withdrawal",
         };
     
         let insert_result = transactions_collection

@@ -1,0 +1,58 @@
+version: '3.8'
+
+x-project-name: simple_bank
+
+services:
+  user_service:
+    build:
+      context: ./user_service
+      dockerfile: Dockerfile
+    environment:
+      - GRPC_SERVER_ADDRESS=0.0.0.0:50051
+    ports:
+      - "50051:50051"
+    volumes:
+      - ./user_service/.env:/app/.env
+  account_service:
+    build:
+      context: ./account_service
+      dockerfile: Dockerfile
+    environment:
+      - GRPC_SERVER_ADDRESS=0.0.0.0:50052
+    ports:
+      - "50052:50052"
+    volumes:
+      - ./account_service/.env:/app/.env
+
+  deposit_service:
+    build:
+      context: ./deposit_service
+      dockerfile: Dockerfile
+    environment:
+      - GRPC_SERVER_ADDRESS=0.0.0.0:50053
+    ports:
+      - "50053:50053"
+    volumes:
+      - ./deposit_service/.env:/app/.env
+
+  withdrawal_service:
+    build:
+      context: ./withdrawal_service
+      dockerfile: Dockerfile
+    environment:
+      - GRPC_SERVER_ADDRESS=0.0.0.0:50054
+    ports:
+      - "50054:50054"
+    volumes:
+      - ./withdrawal_service/.env:/app/.env
+
+  historical_service:
+    build:
+      context: ./historical_service
+      dockerfile: Dockerfile
+    environment:
+      - GRPC_SERVER_ADDRESS=0.0.0.0:50055
+    ports:
+      - "50055:50055"
+    volumes:
+      - ./historical_service/.env:/app/.env

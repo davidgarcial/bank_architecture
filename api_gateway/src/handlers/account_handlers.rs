@@ -69,20 +69,20 @@ async fn get_account_handler(
 ) -> impl Responder {
     let mut grpc_client = data.account_grpc_client.clone();
 
+    let account_id  = account.into_inner();
+    println!("{}", account_id .clone());
     let result = grpc_client
-        .get_account(tonic::Request::new(GetAccountRequest { account_id: account.into_inner() }))
+        .get_account(tonic::Request::new(GetAccountRequest { account_id: account_id .clone()}))
         .await;
 
     match result {
         Ok(response) => {
             let account = response.into_inner().account.unwrap();
-            let account_response = serde_json::json!({"status": "success","data": serde_json::json!({
-                "account": {
-                    "id": account.account_id,
-                    "user_id": account.user_id,
-                    "account_type": account.account_type,
-                    "balance": account.balance
-                }
+            let account_response = serde_json::json!({"status": "success","account": serde_json::json!({
+                "id": account.account_id,
+                "user_id": account.user_id,
+                "account_type": account.account_type,
+                "balance": account.balance 
             })});
             HttpResponse::Ok().json(account_response)
         },
@@ -110,14 +110,11 @@ async fn update_account_handler(
     match result {
         Ok(response) => {
             let account = response.into_inner().account.unwrap();
-            let account_response = serde_json::json!({"status": "success","data": serde_json::json!({
-                "status": "success",
-                "account": {
-                    "id": account.account_id,
-                    "user_id": account.user_id,
-                    "account_type": account.account_type,
-                    "balance": account.balance
-                }
+            let account_response = serde_json::json!({"status": "success","account": serde_json::json!({
+                "id": account.account_id,
+                "user_id": account.user_id,
+                "account_type": account.account_type,
+                "balance": account.balance
             })});
             HttpResponse::Ok().json(account_response)
         },

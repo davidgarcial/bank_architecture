@@ -8,13 +8,14 @@ service DepositService {
 }
 
 message MakeDepositRequest {
-  string account_id = 1;
-  double amount = 2;
-  bool is_bank_agent = 3;
+  string from_account_id = 1;
+  string to_account_id = 2;
+  double amount = 3;
+  bool is_bank_agent = 4;
 }
 
 message MakeDepositResponse {
-  string transaction_id = 1;
+  bool success = 1;
 }
 
 message CheckAccountBalanceRequest {

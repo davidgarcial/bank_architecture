@@ -1,12 +1,10 @@
 use tonic::{Request, Response, Status};
 use std::str::FromStr;
-use std::sync::Arc;
 use uuid::Uuid;
 
 use mongodb::{
     Collection,
-    bson::{doc, Document, oid::ObjectId},
-    {options::ClientOptions, Client}
+    bson::{doc, Document, oid::ObjectId}
 };
 
 pub mod user_service {
@@ -21,33 +19,21 @@ use user_service::{
     UpdateUserRequest, UpdateUserResponse
 };
 
-// The `Arc` functionality in Rust allows for sharing read-only data
-// safely between multiple threads. It is a thread-safe reference-counting
-// smart pointer that increments the reference count when a new `Arc`
-// instance points to the same data, and decrements the count when an
-// `Arc` instance is dropped. When the reference count reaches zero,
-// the data is deallocated.
+use crate::mongodb_client::{get_collection, test_connection};
 
-// `Arc` is useful for sharing read-only data between threads without
-// requiring explicit synchronization mechanisms like locks or mutexes.
-// However, if you need to mutate the data, you must use other synchronization
-// primitives, such as `Mutex` or `RwLock`, to guarantee exclusive access
-// to the data when it is being modified.
 #[derive(Debug, Clone)]
 pub struct MyUserService {
-    db: Arc<mongodb::Database>
+    users_collection: Collection<Document>
 }
 
 impl MyUserService {
-    pub async fn new(uri: &str) -> Result<Self, Box<dyn std::error::Error>> {
-        let client_options = ClientOptions::parse(uri).await?;
-        let client = Client::with_options(client_options)?;
-        let db = client.database("bank");
-        Ok(Self { db: Arc::new(db) })
+    pub async fn new() -> Result<Self, Box<dyn std::error::Error>> {
+        let users_collection: Collection<Document> = get_collection("users").await?;
+        Ok(Self { users_collection })
     }
 
     pub async fn test_connection(&self) -> Result<(), mongodb::error::Error> {
-        let _ = self.db.run_command(doc! { "ping": 1 }, None).await?;
+        let _ = test_connection;
         Ok(())
     }
 }
@@ -59,19 +45,20 @@ impl UserService for MyUserService {
         request: Request<CreateUserRequest>,
     ) -> Result<Response<CreateUserResponse>, Status> {
         let req = request.into_inner();
-        let users_collection: Collection<Document> = self.db.collection("users");
-    
+        
         let new_user = doc! {
             "uuid": Uuid::new_v4().to_string(),
-            "username": req.username,
-            "password": req.password
+            "username": &req.username,
+            "password": &req.password
         };
-    
-        let insert_result = users_collection
+        
+        let insert_result = self.users_collection
             .insert_one(new_user, None)
             .await
             .map_err(|e| Status::internal(format!("Failed to create user: {}", e)))?;
     
+        println!("response {}", &insert_result.inserted_id.as_object_id().unwrap().to_string());
+
         let response = CreateUserResponse {
             id: insert_result.inserted_id.as_object_id().unwrap().to_string()
         };
@@ -84,13 +71,12 @@ impl UserService for MyUserService {
         request: Request<GetUserByUserNameRequest>,
     ) -> Result<Response<GetUserResponse>, Status> {
         let req = request.into_inner();
-        let users_collection: Collection<Document> = self.db.collection("users");
 
         let filter = doc! {
             "username": &req.username
         };
     
-        let user_doc_option = users_collection
+        let user_doc_option = self.users_collection
             .find_one(filter, None)
             .await
             .map_err(|e| Status::internal(format!("Failed to get user: {}", e)))?;
@@ -114,13 +100,12 @@ impl UserService for MyUserService {
         request: Request<GetUserByIdRequest>,
     ) -> Result<Response<GetUserResponse>, Status> {
         let req = request.into_inner();
-        let users_collection: Collection<Document> = self.db.collection("users");
     
         let filter = doc! {
             "uuid": &req.id
         };
     
-        let user_doc_option = users_collection
+        let user_doc_option = self.users_collection
             .find_one(filter, None)
             .await
             .map_err(|e| Status::internal(format!("Failed to get user: {}", e)))?;
@@ -144,7 +129,6 @@ impl UserService for MyUserService {
         request: Request<UpdateUserRequest>,
     ) -> Result<Response<UpdateUserResponse>, Status> {
         let req = request.into_inner();
-        let users_collection: Collection<Document> = self.db.collection("users");
     
         let object_id = match ObjectId::from_str(&req.id) {
             Ok(oid) => oid,
@@ -162,7 +146,7 @@ impl UserService for MyUserService {
             }
         };
     
-        let update_result = users_collection
+        let update_result = self.users_collection
             .update_one(filter, update, None)
             .await
             .map_err(|e| Status::internal(format!("Failed to update user: {}", e)))?;
@@ -179,7 +163,6 @@ impl UserService for MyUserService {
         request: Request<DeleteUserRequest>,
     ) -> Result<Response<DeleteUserResponse>, Status> {
         let req = request.into_inner();
-        let users_collection: Collection<Document> = self.db.collection("users");
     
         let object_id = match ObjectId::from_str(&req.id) {
             Ok(oid) => oid,
@@ -190,7 +173,7 @@ impl UserService for MyUserService {
             "_id": object_id
         };
     
-        let delete_result = users_collection
+        let delete_result = self.users_collection
             .delete_one(filter, None)
             .await
             .map_err(|e| Status::internal(format!("Failed to delete user: {}", e)))?;

@@ -16,7 +16,7 @@ async fn health_checker_handler(
     HttpResponse::Ok().json(json!({"status": "success", "message": MESSAGE}))
 }
 
-#[post("/deposit")]
+#[post("")]
 async fn deposit_handler(
     body: web::Json<DepositRequest>,
     data: web::Data<AppState>,
@@ -25,7 +25,8 @@ async fn deposit_handler(
     let mut grpc_client = data.deposit_grpc_client.clone();
 
     let deposit_request = MakeDepositRequest {
-        account_id: body.account_id.clone(),
+        from_account_id: body.from_account_id.clone(),
+        to_account_id: body.to_account_id.clone(),
         amount: body.amount,
         is_bank_agent: body.is_bank_agent
     };
@@ -36,11 +37,9 @@ async fn deposit_handler(
 
     match result {
         Ok(response) => {
-            let transaction_id = response.into_inner().transaction_id;
+            let status = response.into_inner().success;
             
-            let deposit_response = serde_json::json!({"status": "success","data": serde_json::json!({
-                "transaction_id": transaction_id
-            })});
+            let deposit_response = serde_json::json!({"status": status});
 
             HttpResponse::Ok().json(deposit_response)
         }

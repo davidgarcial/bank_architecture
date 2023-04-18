@@ -18,18 +18,6 @@ use deposit::{
     CheckAccountBalanceRequest, CheckAccountBalanceResponse
 };
 
-// The `Arc` functionality in Rust allows for sharing read-only data
-// safely between multiple threads. It is a thread-safe reference-counting
-// smart pointer that increments the reference count when a new `Arc`
-// instance points to the same data, and decrements the count when an
-// `Arc` instance is dropped. When the reference count reaches zero,
-// the data is deallocated.
-
-// `Arc` is useful for sharing read-only data between threads without
-// requiring explicit synchronization mechanisms like locks or mutexes.
-// However, if you need to mutate the data, you must use other synchronization
-// primitives, such as `Mutex` or `RwLock`, to guarantee exclusive access
-// to the data when it is being modified.
 #[derive(Debug, Clone)]
 pub struct MyDepositService {
     db: Arc<mongodb::Database>
@@ -57,61 +45,90 @@ impl DepositService for MyDepositService {
     ) -> Result<Response<MakeDepositResponse>, Status> {
         let req = request.into_inner();
         let accounts_collection: Collection<Document> = self.db.collection("accounts");
-        let transactions_collection: Collection<Document> = self.db.collection("transactions");
-
-        let object_id = match ObjectId::from_str(&req.account_id) {
-            Ok(oid) => oid,
-            Err(_) => return Err(Status::invalid_argument("Invalid account id")),
+    
+        let from_account_id = ObjectId::from_str(&req.from_account_id)
+            .map_err(|_| Status::invalid_argument("Invalid from account id"))?;
+        let to_account_id = ObjectId::from_str(&req.to_account_id)
+            .map_err(|_| Status::invalid_argument("Invalid to account id"))?;
+    
+        let from_filter = doc! {
+            "_id": from_account_id.clone(),
         };
-
-        let filter = doc! {
-            "_id": object_id,
+        let to_filter = doc! {
+            "_id": to_account_id.clone(),
         };
-
-        let account_doc_option = accounts_collection
-            .find_one(filter.clone(), None)
+    
+        let from_account_doc_option = accounts_collection
+            .find_one(from_filter.clone(), None)
             .await
-            .map_err(|e| Status::internal(format!("Failed to get account: {}", e)))?;
-
-        if let Some(account_doc) = account_doc_option {
-            if req.is_bank_agent || account_doc.get_f64("balance").unwrap() >= req.amount {
-                let new_balance = account_doc.get_f64("balance").unwrap() + req.amount;
-                let update = doc! {
+            .map_err(|e| Status::internal(format!("Failed to get from account: {}", e)))?;
+    
+        let to_account_doc_option = accounts_collection
+            .find_one(to_filter.clone(), None)
+            .await
+            .map_err(|e| Status::internal(format!("Failed to get to account: {}", e)))?;
+    
+        if let (Some(from_account_doc), Some(to_account_doc)) =
+            (from_account_doc_option, to_account_doc_option)
+        {
+            if req.is_bank_agent || from_account_doc.get_f64("balance").unwrap() >= req.amount {
+                let new_from_balance = from_account_doc.get_f64("balance").unwrap() - req.amount;
+                let new_to_balance = to_account_doc.get_f64("balance").unwrap() + req.amount;
+    
+                let from_update = doc! {
                     "$set": {
-                        "balance": new_balance,
+                        "balance": new_from_balance,
                     }
                 };
-
-                // Update the account balance
+                let to_update = doc! {
+                    "$set": {
+                        "balance": new_to_balance,
+                    }
+                };
+    
+                // Update the account balances
                 accounts_collection
-                    .update_one(filter, update, None)
+                    .update_one(from_filter, from_update, None)
                     .await
-                    .map_err(|e| Status::internal(format!("Failed to update account balance: {}", e)))?;
-
+                    .map_err(|e| {
+                        Status::internal(format!("Failed to update from account balance: {}", e))
+                    })?;
+                accounts_collection
+                    .update_one(to_filter, to_update, None)
+                    .await
+                    .map_err(|e| {
+                        Status::internal(format!("Failed to update to account balance: {}", e))
+                    })?;
+    
                 // Record the transaction
                 let new_transaction = doc! {
-                    "account_id": object_id,
+                    "from_account_id": from_account_id,
+                    "to_account_id": to_account_id,
                     "amount": req.amount,
-                    "type": "deposit",
+                    "type": "Deposit",
                 };
-
-                let insert_result = transactions_collection
+    
+                let transactions_collection: Collection<Document> = self.db.collection("transactions");
+                let _insert_result = transactions_collection
                     .insert_one(new_transaction, None)
                     .await
-                    .map_err(|e| Status::internal(format!("Failed to create transaction: {}", e)))?;
-
-                let response = MakeDepositResponse {
-                    transaction_id: insert_result.inserted_id.as_object_id().unwrap().to_string(),
-                };
-
+                    .map_err(|e| {
+                        Status::internal(format!("Failed to create transaction: {}", e))
+                    })?;
+    
+                let response = MakeDepositResponse { success: true };
+    
                 Ok(Response::new(response))
             } else {
-                Err(Status::failed_precondition("Insufficient balance or not a bank agent for deposit"))
+                Err(Status::failed_precondition(
+                    "Insufficient balance or not a bank agent for deposit",
+                ))
             }
         } else {
             Err(Status::not_found("Account not found"))
         }
     }
+    
 
     async fn check_account_balance(
         &self,

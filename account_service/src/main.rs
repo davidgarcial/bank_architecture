@@ -11,7 +11,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let mongodb_uri = env::var("MONGODB_URI").unwrap_or_else(|_| "mongodb://localhost:27017".to_string());
     let addr = env::var("GRPC_SERVER_ADDRESS")
-        .unwrap_or_else(|_| "127.0.0.1:50051".to_string())
+        .unwrap_or_else(|_| "0.0.0.0:50051".to_string())
         .parse()
         .unwrap();
     
