@@ -13,6 +13,7 @@ service AccountService {
 message CreateAccountRequest {
   string user_id = 1;
   AccountType account_type = 2;
+  string account_name = 3;
 }
 
 message CreateAccountResponse {
@@ -43,6 +44,7 @@ message Account {
   double balance = 4;
   google.protobuf.Timestamp created_at = 5;
   google.protobuf.Timestamp updated_at = 6;
+  string account_name = 7;
 }
 
 enum AccountType {

@@ -1,18 +1,21 @@
-use tonic::{Request, Response, Status};
 use std::str::FromStr;
 use std::sync::Arc;
+use tonic::{Request, Response, Status};
 
 use futures::stream::TryStreamExt;
+use log::{info};
 
 use mongodb::{
+    bson::{doc, oid::ObjectId, Document},
+    options::FindOptions,
     Collection,
-    options::{FindOptions},
-    bson::{doc, Document, oid::ObjectId},
     {options::ClientOptions, Client}
 };
 
 use historical::historical_service_server::HistoricalService;
-use historical::{GetTransactionHistoryRequest, GetTransactionHistoryResponse, Transaction, TransactionType};
+use historical::{
+    GetTransactionHistoryRequest, GetTransactionHistoryResponse, Transaction, TransactionType
+};
 
 pub mod historical {
     tonic::include_proto!("historical");
@@ -20,7 +23,7 @@ pub mod historical {
 
 #[derive(Debug, Clone)]
 pub struct MyHistoricalService {
-    db: Arc<mongodb::Database>
+    db: Arc<mongodb::Database>,
 }
 
 impl MyHistoricalService {
@@ -60,15 +63,16 @@ impl HistoricalService for MyHistoricalService {
             "timestamp": -1, // sort by timestamp in descending order
         });
 
-        let mut cursor = 
-            transactions_collection
-                .find(filter, options).await
-                .map_err(|e| Status::internal(format!("Failed to get historical: {}", e)))?;
+        let mut cursor = transactions_collection
+            .find(filter, options)
+            .await
+            .map_err(|e| Status::internal(format!("Failed to get historical: {}", e)))?;
 
         let mut transactions = Vec::new();
-        while let Some(result) = 
-            cursor.try_next().await
-                .map_err(|e| Status::internal(format!("Failed to get historical: {}", e)))?
+        while let Some(result) = cursor
+            .try_next()
+            .await
+            .map_err(|e| Status::internal(format!("Failed to get historical: {}", e)))?
         {
             let transaction = Transaction {
                 transaction_id: result.get_str("transaction_id").unwrap().to_string(),
@@ -83,6 +87,8 @@ impl HistoricalService for MyHistoricalService {
             };
             transactions.push(transaction);
         }
+
+        info!("Fetched transaction history for account {}", account_id);
 
         let response = GetTransactionHistoryResponse { transactions };
         Ok(Response::new(response))

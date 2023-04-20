@@ -1,6 +1,5 @@
 use tonic::{Request, Response, Status};
-use std::str::FromStr;
-use std::sync::Arc;
+use std::{str::FromStr, sync::Arc};
 
 use mongodb::{
     Collection,
@@ -18,18 +17,6 @@ use withdrawal::{
     CheckAccountBalanceRequest, CheckAccountBalanceResponse
 };
 
-// The `Arc` functionality in Rust allows for sharing read-only data
-// safely between multiple threads. It is a thread-safe reference-counting
-// smart pointer that increments the reference count when a new `Arc`
-// instance points to the same data, and decrements the count when an
-// `Arc` instance is dropped. When the reference count reaches zero,
-// the data is deallocated.
-
-// `Arc` is useful for sharing read-only data between threads without
-// requiring explicit synchronization mechanisms like locks or mutexes.
-// However, if you need to mutate the data, you must use other synchronization
-// primitives, such as `Mutex` or `RwLock`, to guarantee exclusive access
-// to the data when it is being modified.
 #[derive(Debug, Clone)]
 pub struct MyWithdrawalService {
     db: Arc<mongodb::Database>
@@ -147,4 +134,3 @@ impl WithdrawalService for MyWithdrawalService {
         }
     }
 }
-    

@@ -13,6 +13,8 @@ uuid = { version = "1.2.2", features = ["serde", "v4"] }
 prost-types = "0.9"
 chrono = "0.4"
 bson = "2.0"
+log = "0.4"
+env_logger = "0.9"
 
 [build-dependencies]
 tonic-build = "0.6"

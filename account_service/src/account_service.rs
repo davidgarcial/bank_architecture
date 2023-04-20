@@ -1,17 +1,18 @@
-use tonic::{Request, Response, Status};
-use prost_types::Timestamp;
 use bson::Bson;
+use log::{error, info};
+use prost_types::Timestamp;
+use tonic::{Request, Response, Status};
 
 use std::{
-    fmt::{self, Display, Formatter},
     convert::Infallible,
+    fmt::{self, Display, Formatter},
     str::FromStr,
     sync::Arc
 };
 
 use mongodb::{
+    bson::{doc, oid::ObjectId, Document},
     Collection,
-    bson::{doc, Document, oid::ObjectId},
     {options::ClientOptions, Client}
 };
 
@@ -21,10 +22,8 @@ pub mod account {
 
 use account::account_service_server::AccountService;
 use account::{
-    AccountType, 
-    CreateAccountRequest, CreateAccountResponse,
-    GetAccountRequest, GetAccountResponse,
-    UpdateAccountRequest, UpdateAccountResponse
+    AccountType, CreateAccountRequest, CreateAccountResponse, GetAccountRequest,
+    GetAccountResponse, UpdateAccountRequest, UpdateAccountResponse
 };
 
 impl Display for AccountType {
@@ -50,18 +49,6 @@ impl FromStr for AccountType {
     }
 }
 
-// The `Arc` functionality in Rust allows for sharing read-only data
-// safely between multiple threads. It is a thread-safe reference-counting
-// smart pointer that increments the reference count when a new `Arc`
-// instance points to the same data, and decrements the count when an
-// `Arc` instance is dropped. When the reference count reaches zero,
-// the data is deallocated.
-
-// `Arc` is useful for sharing read-only data between threads without
-// requiring explicit synchronization mechanisms like locks or mutexes.
-// However, if you need to mutate the data, you must use other synchronization
-// primitives, such as `Mutex` or `RwLock`, to guarantee exclusive access
-// to the data when it is being modified.
 #[derive(Debug, Clone)]
 pub struct MyAccountService {
     db: Arc<mongodb::Database>,
@@ -85,7 +72,7 @@ pub fn account_type_to_string(value: i32) -> String {
     match value {
         0 => "CHECKING".to_string(),
         1 => "SAVINGS".to_string(),
-        _ => panic!("Invalid account type value: {}", value)
+        _ => panic!("Invalid account type value: {}", value),
     }
 }
 
@@ -98,9 +85,13 @@ impl AccountService for MyAccountService {
         let req = request.into_inner();
         let accounts_collection: Collection<Document> = self.db.collection("accounts");
 
+        // Log the account creation request
+        info!("Creating account for user_id: {}", req.user_id);
+
         let new_account = doc! {
             "user_id": req.user_id,
             "account_type": account_type_to_string(req.account_type),
+            "account_name": req.account_name,
             "balance": 0.0
         };
 
@@ -113,12 +104,17 @@ impl AccountService for MyAccountService {
             .inserted_id
             .as_object_id()
             .map(|id| id.to_hex())
-            .ok_or_else(|| Status::internal("Failed to create account: missing inserted_id".to_string()))?;
+            .ok_or_else(|| {
+                Status::internal("Failed to create account: missing inserted_id".to_string())
+            })?;
 
-        let response = CreateAccountResponse {
-            account_id,
-        };
+        // Log the successful account creation
+        info!(
+            "Account created successfully with account_id: {}",
+            account_id
+        );
 
+        let response = CreateAccountResponse { account_id };
         Ok(Response::new(response))
     }
 
@@ -129,7 +125,10 @@ impl AccountService for MyAccountService {
         let req = request.into_inner();
         let accounts_collection: Collection<Document> = self.db.collection("accounts");
 
-        let account_id  = match ObjectId::from_str(&req.account_id) {
+        // Log the account fetching request
+        info!("Fetching account with account_id: {}", req.account_id);
+
+        let account_id = match ObjectId::from_str(&req.account_id) {
             Ok(oid) => oid,
             Err(_) => return Err(Status::invalid_argument("Invalid account id")),
         };
@@ -148,65 +147,82 @@ impl AccountService for MyAccountService {
                 account: Some(account::Account {
                     account_id: account_doc.get_object_id("_id").unwrap().to_string(),
                     user_id: account_doc.get_str("user_id").unwrap().to_string(),
-                    account_type: AccountType::from_str(account_doc.get_str("account_type").unwrap()).unwrap() as i32,
+                    account_name: account_doc.get_str("account_name").unwrap().to_string(),
+                    account_type: AccountType::from_str(
+                        account_doc.get_str("account_type").unwrap(),
+                    )
+                    .unwrap() as i32,
                     balance: account_doc.get_f64("balance").unwrap(),
                     created_at: None, // We didn't store created_at and updated_at in the database, so we can't return them here.
                     updated_at: None,
                 }),
             };
+
+            // Log the successful account fetching
+            info!(
+                "Account fetched successfully with account_id: {}",
+                req.account_id
+            );
+
             Ok(Response::new(response))
         } else {
+            error!("Account not found with account_id: {}", req.account_id);
             Err(Status::not_found("Account not found"))
         }
     }
-    
+
     async fn update_account(
         &self,
         request: Request<UpdateAccountRequest>,
     ) -> Result<Response<UpdateAccountResponse>, Status> {
         let req = request.into_inner();
         let accounts_collection: Collection<Document> = self.db.collection("accounts");
-    
+
+        // Log the account updating request
+        info!("Updating account with account_id: {}", req.account_id);
+
         let object_id = match ObjectId::from_str(&req.account_id) {
             Ok(oid) => oid,
             Err(_) => return Err(Status::invalid_argument("Invalid account id")),
         };
-    
+
         let filter_update = doc! {
             "_id": object_id,
         };
-    
+
         let update = doc! {
             "$set": {
                 "balance": req.balance,
                 "updated_at": Bson::DateTime(bson::DateTime::now())
             }
         };
-    
+
         let _ = accounts_collection
             .update_one(filter_update, update, None)
             .await
             .map_err(|e| Status::internal(format!("Failed to update account: {}", e)))?;
-    
+
         let filter_find = doc! {
             "_id": object_id,
         };
-    
+
         let account_doc_option = accounts_collection
             .find_one(filter_find, None)
             .await
             .map_err(|e| Status::internal(format!("Failed to get account: {}", e)))?;
-    
+
         let mut response = UpdateAccountResponse { account: None };
-    
+
         if let Some(account_doc) = account_doc_option {
             let created_at = account_doc.get_datetime("created_at").unwrap();
             let updated_at = account_doc.get_datetime("updated_at").unwrap();
-        
+
             let account = account::Account {
                 account_id: account_doc.get_object_id("_id").unwrap().to_string(),
                 user_id: account_doc.get_str("user_id").unwrap().to_string(),
-                account_type: AccountType::from_str(account_doc.get_str("account_type").unwrap()).unwrap() as i32,
+                account_type: AccountType::from_str(account_doc.get_str("account_type").unwrap())
+                    .unwrap() as i32,
+                account_name: account_doc.get_str("account_name").unwrap().to_string(),
                 balance: account_doc.get_f64("balance").unwrap(),
                 created_at: Some(Timestamp {
                     seconds: created_at.timestamp_millis() / 1_000,
@@ -215,11 +231,18 @@ impl AccountService for MyAccountService {
                 updated_at: Some(Timestamp {
                     seconds: updated_at.timestamp_millis() / 1_000,
                     nanos: ((updated_at.timestamp_millis() % 1_000) * 1_000_000) as i32,
-                })
+                }),
             };
             response.account = Some(account);
+            // Log the successful account update
+            info!(
+                "Account updated successfully with account_id: {}",
+                req.account_id
+            );
+        } else {
+            error!("Account not found with account_id: {}", req.account_id);
         }
-    
+
         Ok(Response::new(response))
     }
 }

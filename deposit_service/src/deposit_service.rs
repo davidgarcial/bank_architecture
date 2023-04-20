@@ -1,11 +1,11 @@
+use log::{error, info};
+use std::{str::FromStr, sync::Arc};
 use tonic::{Request, Response, Status};
-use std::str::FromStr;
-use std::sync::Arc;
 
 use mongodb::{
+    bson::{doc, oid::ObjectId, Document},
     Collection,
-    bson::{doc, Document, oid::ObjectId},
-    {options::ClientOptions, Client}
+    {options::ClientOptions, Client},
 };
 
 pub mod deposit {
@@ -14,13 +14,13 @@ pub mod deposit {
 
 use deposit::deposit_service_server::DepositService;
 use deposit::{
-    MakeDepositRequest, MakeDepositResponse, 
-    CheckAccountBalanceRequest, CheckAccountBalanceResponse
+    CheckAccountBalanceRequest, CheckAccountBalanceResponse, MakeDepositRequest,
+    MakeDepositResponse,
 };
 
 #[derive(Debug, Clone)]
 pub struct MyDepositService {
-    db: Arc<mongodb::Database>
+    db: Arc<mongodb::Database>,
 }
 
 impl MyDepositService {
@@ -45,36 +45,36 @@ impl DepositService for MyDepositService {
     ) -> Result<Response<MakeDepositResponse>, Status> {
         let req = request.into_inner();
         let accounts_collection: Collection<Document> = self.db.collection("accounts");
-    
+
         let from_account_id = ObjectId::from_str(&req.from_account_id)
             .map_err(|_| Status::invalid_argument("Invalid from account id"))?;
         let to_account_id = ObjectId::from_str(&req.to_account_id)
             .map_err(|_| Status::invalid_argument("Invalid to account id"))?;
-    
+
         let from_filter = doc! {
             "_id": from_account_id.clone(),
         };
         let to_filter = doc! {
             "_id": to_account_id.clone(),
         };
-    
+
         let from_account_doc_option = accounts_collection
             .find_one(from_filter.clone(), None)
             .await
             .map_err(|e| Status::internal(format!("Failed to get from account: {}", e)))?;
-    
+
         let to_account_doc_option = accounts_collection
             .find_one(to_filter.clone(), None)
             .await
             .map_err(|e| Status::internal(format!("Failed to get to account: {}", e)))?;
-    
+
         if let (Some(from_account_doc), Some(to_account_doc)) =
             (from_account_doc_option, to_account_doc_option)
         {
             if req.is_bank_agent || from_account_doc.get_f64("balance").unwrap() >= req.amount {
                 let new_from_balance = from_account_doc.get_f64("balance").unwrap() - req.amount;
                 let new_to_balance = to_account_doc.get_f64("balance").unwrap() + req.amount;
-    
+
                 let from_update = doc! {
                     "$set": {
                         "balance": new_from_balance,
@@ -85,7 +85,7 @@ impl DepositService for MyDepositService {
                         "balance": new_to_balance,
                     }
                 };
-    
+
                 // Update the account balances
                 accounts_collection
                     .update_one(from_filter, from_update, None)
@@ -97,9 +97,8 @@ impl DepositService for MyDepositService {
                     .update_one(to_filter, to_update, None)
                     .await
                     .map_err(|e| {
-                        Status::internal(format!("Failed to update to account balance: {}", e))
+                        Status::internal(format!("Failedto update to account balance: {}", e))
                     })?;
-    
                 // Record the transaction
                 let new_transaction = doc! {
                     "from_account_id": from_account_id,
@@ -107,28 +106,35 @@ impl DepositService for MyDepositService {
                     "amount": req.amount,
                     "type": "Deposit",
                 };
-    
-                let transactions_collection: Collection<Document> = self.db.collection("transactions");
+
+                let transactions_collection: Collection<Document> =
+                    self.db.collection("transactions");
                 let _insert_result = transactions_collection
                     .insert_one(new_transaction, None)
                     .await
                     .map_err(|e| {
                         Status::internal(format!("Failed to create transaction: {}", e))
                     })?;
-    
+
+                info!(
+                    "Deposit of {} made from account {} to account {}",
+                    req.amount, req.from_account_id, req.to_account_id
+                );
+
                 let response = MakeDepositResponse { success: true };
-    
+
                 Ok(Response::new(response))
             } else {
+                error!("Insufficient balance or not a bank agent for deposit");
                 Err(Status::failed_precondition(
                     "Insufficient balance or not a bank agent for deposit",
                 ))
             }
         } else {
+            error!("Account not found");
             Err(Status::not_found("Account not found"))
         }
     }
-    
 
     async fn check_account_balance(
         &self,
@@ -156,8 +162,14 @@ impl DepositService for MyDepositService {
                 balance: account_doc.get_f64("balance").unwrap(),
             };
 
+            info!(
+                "Account balance for account {}: {}",
+                req.account_id, response.balance
+            );
+
             Ok(Response::new(response))
         } else {
+            error!("Account not found");
             Err(Status::not_found("Account not found"))
         }
     }

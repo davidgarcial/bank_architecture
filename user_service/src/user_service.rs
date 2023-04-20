@@ -1,10 +1,11 @@
-use tonic::{Request, Response, Status};
+use log::{error, info};
 use std::str::FromStr;
+use tonic::{Request, Response, Status};
 use uuid::Uuid;
 
 use mongodb::{
+    bson::{doc, oid::ObjectId, Document},
     Collection,
-    bson::{doc, Document, oid::ObjectId}
 };
 
 pub mod user_service {
@@ -13,17 +14,16 @@ pub mod user_service {
 
 use user_service::user_service_server::UserService;
 use user_service::{
-    CreateUserRequest, CreateUserResponse, 
-    DeleteUserRequest, DeleteUserResponse, 
-    GetUserByIdRequest, GetUserByUserNameRequest, GetUserResponse, 
-    UpdateUserRequest, UpdateUserResponse
+    CreateUserRequest, CreateUserResponse, DeleteUserRequest, DeleteUserResponse,
+    GetUserByIdRequest, GetUserByUserNameRequest, GetUserResponse, UpdateUserRequest,
+    UpdateUserResponse,
 };
 
 use crate::mongodb_client::{get_collection, test_connection};
 
 #[derive(Debug, Clone)]
 pub struct MyUserService {
-    users_collection: Collection<Document>
+    users_collection: Collection<Document>,
 }
 
 impl MyUserService {
@@ -45,24 +45,36 @@ impl UserService for MyUserService {
         request: Request<CreateUserRequest>,
     ) -> Result<Response<CreateUserResponse>, Status> {
         let req = request.into_inner();
-        
+
         let new_user = doc! {
             "uuid": Uuid::new_v4().to_string(),
             "username": &req.username,
             "password": &req.password
         };
-        
-        let insert_result = self.users_collection
+
+        let insert_result = self
+            .users_collection
             .insert_one(new_user, None)
             .await
             .map_err(|e| Status::internal(format!("Failed to create user: {}", e)))?;
-    
-        println!("response {}", &insert_result.inserted_id.as_object_id().unwrap().to_string());
+
+        info!(
+            "Created new user with id {}",
+            &insert_result
+                .inserted_id
+                .as_object_id()
+                .unwrap()
+                .to_string()
+        );
 
         let response = CreateUserResponse {
-            id: insert_result.inserted_id.as_object_id().unwrap().to_string()
+            id: insert_result
+                .inserted_id
+                .as_object_id()
+                .unwrap()
+                .to_string(),
         };
-    
+
         Ok(Response::new(response))
     }
 
@@ -75,20 +87,23 @@ impl UserService for MyUserService {
         let filter = doc! {
             "username": &req.username
         };
-    
-        let user_doc_option = self.users_collection
+
+        let user_doc_option = self
+            .users_collection
             .find_one(filter, None)
             .await
             .map_err(|e| Status::internal(format!("Failed to get user: {}", e)))?;
-    
+
         if let Some(user_doc) = user_doc_option {
+            info!("Fetched user by username: {}", req.username);
+
             let response = GetUserResponse {
                 id: user_doc.get_object_id("_id").unwrap().to_string(),
                 uuid: user_doc.get_str("uuid").unwrap().to_string(),
                 username: user_doc.get_str("username").unwrap().to_string(),
-                password: user_doc.get_str("password").unwrap().to_string()
+                password: user_doc.get_str("password").unwrap().to_string(),
             };
-    
+
             Ok(Response::new(response))
         } else {
             Err(Status::not_found("User not found"))
@@ -100,87 +115,104 @@ impl UserService for MyUserService {
         request: Request<GetUserByIdRequest>,
     ) -> Result<Response<GetUserResponse>, Status> {
         let req = request.into_inner();
-    
+
         let filter = doc! {
             "uuid": &req.id
         };
-    
-        let user_doc_option = self.users_collection
+
+        let user_doc_option = self
+            .users_collection
             .find_one(filter, None)
             .await
             .map_err(|e| Status::internal(format!("Failed to get user: {}", e)))?;
-    
+
         if let Some(user_doc) = user_doc_option {
+            info!("Fetched user by id: {}", req.id);
+
             let response = GetUserResponse {
                 id: user_doc.get_object_id("_id").unwrap().to_string(),
                 username: user_doc.get_str("username").unwrap().to_string(),
                 password: user_doc.get_str("password").unwrap().to_string(),
-                uuid: user_doc.get_str("uuid").unwrap().to_string()
+                uuid: user_doc.get_str("uuid").unwrap().to_string(),
             };
-    
+
             Ok(Response::new(response))
         } else {
             Err(Status::not_found("User not found"))
         }
     }
-    
+
     async fn update_user(
         &self,
         request: Request<UpdateUserRequest>,
     ) -> Result<Response<UpdateUserResponse>, Status> {
         let req = request.into_inner();
-    
+
         let object_id = match ObjectId::from_str(&req.id) {
             Ok(oid) => oid,
-            Err(_) => return Err(Status::invalid_argument("Invalid user id"))
+            Err(_) => return Err(Status::invalid_argument("Invalid user id")),
         };
-    
+
         let filter = doc! {
             "_id": object_id
         };
-    
+
         let update = doc! {
             "$set": {
                 "username": req.username,
                 "password": req.password
             }
         };
-    
-        let update_result = self.users_collection
+
+        let update_result = self
+            .users_collection
             .update_one(filter, update, None)
             .await
             .map_err(|e| Status::internal(format!("Failed to update user: {}", e)))?;
-    
+
+        if update_result.modified_count > 0 {
+            info!("Updated user with id: {}", req.id);
+        } else {
+            error!("Failed to update user with id: {}", req.id);
+        }
+
         let success = update_result.modified_count > 0;
         let response = UpdateUserResponse { success };
-    
+
         Ok(Response::new(response))
     }
-    
+
     // DeleteUser
     async fn delete_user(
         &self,
         request: Request<DeleteUserRequest>,
     ) -> Result<Response<DeleteUserResponse>, Status> {
         let req = request.into_inner();
-    
+
         let object_id = match ObjectId::from_str(&req.id) {
             Ok(oid) => oid,
-            Err(_) => return Err(Status::invalid_argument("Invalid user id"))
+            Err(_) => return Err(Status::invalid_argument("Invalid user id")),
         };
-    
+
         let filter = doc! {
             "_id": object_id
         };
-    
-        let delete_result = self.users_collection
+
+        let delete_result = self
+            .users_collection
             .delete_one(filter, None)
             .await
             .map_err(|e| Status::internal(format!("Failed to delete user: {}", e)))?;
-    
+
+        if delete_result.deleted_count > 0 {
+            info!("Deleted user with id: {}", req.id);
+        } else {
+            error!("Failed to delete user with id: {}", req.id);
+        }
+
         let success = delete_result.deleted_count > 0;
         let response = DeleteUserResponse { success };
-    
+
         Ok(Response::new(response))
     }
 }
