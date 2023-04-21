@@ -2,6 +2,7 @@ use bson::Bson;
 use log::{error, info};
 use prost_types::Timestamp;
 use tonic::{Request, Response, Status};
+use futures::stream::TryStreamExt;
 
 use std::{
     convert::Infallible,
@@ -22,8 +23,9 @@ pub mod account {
 
 use account::account_service_server::AccountService;
 use account::{
-    AccountType, CreateAccountRequest, CreateAccountResponse, GetAccountRequest,
-    GetAccountResponse, UpdateAccountRequest, UpdateAccountResponse
+    Account, AccountType, CreateAccountRequest, CreateAccountResponse, GetAccountRequest,
+    GetAccountResponse, GetUserAccountsRequest, GetUserAccountsResponse,
+    UpdateAccountRequest, UpdateAccountResponse
 };
 
 impl Display for AccountType {
@@ -243,6 +245,51 @@ impl AccountService for MyAccountService {
             error!("Account not found with account_id: {}", req.account_id);
         }
 
+        Ok(Response::new(response))
+    }
+
+    async fn get_user_accounts(
+        &self,
+        request: Request<GetUserAccountsRequest>,
+    ) -> Result<Response<GetUserAccountsResponse>, Status> {
+        let req = request.into_inner();
+        let accounts_collection: Collection<Document> = self.db.collection("accounts");
+
+        // Log the account creation request
+        info!("Getting accounts for user_id: {}", req.user_id);
+
+        let filter = doc! {
+            "user_id": req.user_id,
+        };
+
+        let mut cursor = accounts_collection
+            .find(filter, None)
+            .await
+            .map_err(|e| Status::internal(format!("Failed to get accounts: {}", e)))?;
+
+        let mut accounts = Vec::new();
+        while let Some(result) = cursor
+            .try_next()
+            .await
+            .map_err(|e| Status::internal(format!("Failed to get historical: {}", e)))?
+        {
+            let account = Account {
+                account_id: result.get_str("account_id").unwrap().to_string(),
+                user_id: result.get_str("user_id").unwrap().to_string(),
+                account_type: match result.get_i32("transaction_type").unwrap() {
+                    0 => AccountType::Checking as i32,
+                    1 => AccountType::Savings as i32,
+                    _ => return Err(Status::internal("Invalid account type")),
+                },
+                balance: result.get_f64("balance").unwrap(),
+                created_at: None,
+                updated_at: None,
+                account_name: result.get_str("account_name").unwrap().to_string()
+            };
+            accounts.push(account);
+        }
+
+        let response = GetUserAccountsResponse { accounts };
         Ok(Response::new(response))
     }
 }

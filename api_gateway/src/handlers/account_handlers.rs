@@ -1,6 +1,6 @@
 use crate::{
     grpc_clients::account_grpc_client::account::{
-        AccountType, CreateAccountRequest, GetAccountRequest, UpdateAccountRequest,
+        AccountType, CreateAccountRequest, GetAccountRequest, UpdateAccountRequest, GetUserAccountsRequest,
     },
     jwt_auth,
     models::{
@@ -97,6 +97,54 @@ async fn get_account_handler(
         }
         Err(e) => {
             error!("Error getting account: {:?}", e);
+            HttpResponse::InternalServerError()
+                .json(json!({ "status": "error", "message": format!("{:?}", e) }))
+        }
+    }
+}
+
+#[get("/accounts/{user_id}")]
+async fn get_accounts_handler(
+    user: web::Path<String>,
+    data: web::Data<AppState>,
+    _: jwt_auth::JwtMiddleware,
+) -> impl Responder {
+    info!("Getting account with user ID: {}", user);
+
+    let mut grpc_client = data.account_grpc_client.clone();
+
+    let user_id = user.into_inner();
+    let result = grpc_client
+        .get_user_accounts(tonic::Request::new(GetUserAccountsRequest {
+            user_id: user_id.clone(),
+        }))
+        .await;
+
+    match result {
+        Ok(response) => {
+            let accounts = response.into_inner().accounts;
+            info!(
+                "Accounts history retrieved, count: {}",
+                accounts.len()
+            );
+
+            let accounts_json: serde_json::Value = serde_json::json!(accounts.into_iter().map(|account| {
+                serde_json::json!({
+                    "account_id": account.account_id,
+                    "user_id": account.user_id,
+                    "account_type": account.account_type,
+                    "balance": account.balance,
+                    "account_name": account.account_name
+                })
+            }).collect::<Vec<serde_json::Value>>());
+            
+            HttpResponse::Ok().json(serde_json::json!({
+                "status": "success",
+                "accounts": accounts_json
+            }))
+        }
+        Err(e) => {
+            error!("Error getting accounts: {:?}", e);
             HttpResponse::InternalServerError()
                 .json(json!({ "status": "error", "message": format!("{:?}", e) }))
         }

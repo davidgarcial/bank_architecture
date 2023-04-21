@@ -8,6 +8,7 @@ service AccountService {
   rpc CreateAccount(CreateAccountRequest) returns (CreateAccountResponse);
   rpc GetAccount(GetAccountRequest) returns (GetAccountResponse);
   rpc UpdateAccount(UpdateAccountRequest) returns (UpdateAccountResponse);
+  rpc GetUserAccounts(GetUserAccountsRequest) returns (GetUserAccountsResponse);
 }
 
 message CreateAccountRequest {
@@ -35,6 +36,14 @@ message UpdateAccountRequest {
 
 message UpdateAccountResponse {
   Account account = 1;
+}
+
+message GetUserAccountsRequest {
+  string user_id = 1;
+}
+
+message GetUserAccountsResponse {
+  repeated Account accounts = 1;
 }
 
 message Account {

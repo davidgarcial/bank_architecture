@@ -1,0 +1,28 @@
+<div class="container">
+  <div class="row">
+    <div class="col-md-6">
+      <h3>Deposit</h3>
+      <form (submit)="onSubmit()">
+        <div class="form-group">
+          <label for="selectedAccount">Select Account</label>
+          <select class="form-control" id="selectedAccount" [(ngModel)]="selectedAccount" name="selectedAccount" (change)="onAccountChange($event)">
+            <option *ngFor="let account of accounts" [ngValue]="account">{{ account.account_name }} - {{ account.account_id }}</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="toAccountId">To Account ID</label>
+          <input type="text" class="form-control" id="toAccountId" [(ngModel)]="depositRequest.to_account_id" name="toAccountId" required>
+        </div>
+        <div class="form-group">
+          <label for="amount">Amount</label>
+          <input type="number" class="form-control" id="amount" [(ngModel)]="depositRequest.amount" name="amount" required>
+        </div>
+        <div class="form-check">
+          <input class="form-check-input" type="checkbox" id="isBankAgent" [(ngModel)]="depositRequest.is_bank_agent" name="isBankAgent">
+          <label class="form-check-label" for="isBankAgent">Is Bank Agent</label>
+        </div>
+        <button type="submit" class="btn btn-primary mt-3">Submit</button>
+      </form>
+    </div>
+  </div>
+</div>
