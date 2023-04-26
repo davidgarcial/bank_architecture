@@ -1,0 +1,36 @@
+<h1 mat-dialog-title>Transaction History</h1>
+<mat-dialog-content>
+  <div *ngIf="!data.account">
+    <p>No account selected.</p>
+  </div>
+  <div *ngIf="data.account">
+    <p>Account: {{ data.account.account_name }}</p>
+    <table mat-table [dataSource]="transactions" class="mat-elevation-z8">
+      <ng-container matColumnDef="transaction_id">
+        <th mat-header-cell *matHeaderCellDef>Transaction ID</th>
+        <td mat-cell *matCellDef="let transaction">{{ transaction.transaction_id }}</td>
+      </ng-container>
+
+      <ng-container matColumnDef="transaction_type">
+        <th mat-header-cell *matHeaderCellDef>Type</th>
+        <td mat-cell *matCellDef="let transaction">{{ transaction.transaction_type }}</td>
+      </ng-container>
+
+      <ng-container matColumnDef="amount">
+        <th mat-header-cell *matHeaderCellDef>Amount</th>
+        <td mat-cell *matCellDef="let transaction">{{ transaction.amount }}</td>
+      </ng-container>
+
+      <ng-container matColumnDef="timestamp">
+        <th mat-header-cell *matHeaderCellDef>Timestamp</th>
+        <td mat-cell *matCellDef="let transaction">{{ transaction.timestamp | date }}</td>
+      </ng-container>
+
+      <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+      <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
+    </table>
+  </div>
+</mat-dialog-content>
+<mat-dialog-actions>
+  <button mat-button (click)="dialogRef.close()">Close</button>
+</mat-dialog-actions>

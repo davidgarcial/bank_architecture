@@ -1,4 +1,4 @@
-use std::str::FromStr;
+use std::{str::FromStr, ptr::null};
 use std::sync::Arc;
 use tonic::{Request, Response, Status};
 
@@ -75,15 +75,15 @@ impl HistoricalService for MyHistoricalService {
             .map_err(|e| Status::internal(format!("Failed to get historical: {}", e)))?
         {
             let transaction = Transaction {
-                transaction_id: result.get_str("transaction_id").unwrap().to_string(),
+                transaction_id: result.get_object_id("_id").unwrap().to_string(),
                 account_id: result.get_object_id("account_id").unwrap().to_string(),
-                transaction_type: match result.get_i32("transaction_type").unwrap() {
-                    0 => TransactionType::Deposit as i32,
-                    1 => TransactionType::Withdrawal as i32,
-                    _ => return Err(Status::internal("Invalid transaction type")),
+                transaction_type: match result.get_str("type").unwrap() {
+                    "Deposit" => TransactionType::Deposit as i32,
+                    "Withdrawal" => TransactionType::Withdrawal as i32,
+                    _ => return Err(Status::internal("Invalid account type")),
                 },
                 amount: result.get_f64("amount").unwrap(),
-                timestamp: result.get_i64("timestamp").unwrap(),
+                timestamp: Default::default()
             };
             transactions.push(transaction);
         }

@@ -1,27 +1,27 @@
 <div id="app">
   <nav class="navbar navbar-expand navbar-dark bg-dark">
     <a href="#" class="navbar-brand">Simple Bank</a>
-    <ul  *ngIf="isLoggedIn" class="navbar-nav mr-auto" routerLinkActive="active">
+    <ul *ngIf="isLoggedIn" class="navbar-nav mr-auto" routerLinkActive="active">
       <li class="nav-item">
-        <a href="/home" class="nav-link" routerLink="home">Accounts</a>
+        <a class="nav-link" routerLink="account">Accounts</a>
       </li>
       <li class="nav-item">
-        <a href="/user" class="nav-link" routerLink="user">Deposit</a>
+        <a class="nav-link" routerLink="deposit">Deposit</a>
       </li>
       <li class="nav-item">
-        <a href="/user" class="nav-link" routerLink="user">Withdrawal</a>
+        <a class="nav-link" routerLink="withdrawal">Withdrawal</a>
       </li>
       <li class="nav-item" *ngIf="showAdminBoard">
-        <a href="/admin" class="nav-link" routerLink="admin">Admin Board</a>
+        <a class="nav-link" routerLink="admin">Admin Board</a>
       </li>
     </ul>
 
     <ul class="navbar-nav ml-auto" *ngIf="!isLoggedIn">
       <li class="nav-item">
-        <a href="/register" class="nav-link" routerLink="register">Sign Up</a>
+        <a class="nav-link" routerLink="register">Sign Up</a>
       </li>
       <li class="nav-item">
-        <a href="/login" class="nav-link" routerLink="login">Login</a>
+        <a class="nav-link" routerLink="login">Login</a>
       </li>
     </ul>
 

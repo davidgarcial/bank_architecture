@@ -10,7 +10,6 @@ import { EventBusService } from './_shared/event-bus.service';
   styleUrls: ['./app.component.css']
 })
 export class AppComponent {
-  private roles: string[] = [];
   isLoggedIn = false;
   showAdminBoard = false;
   showModeratorBoard = false;
@@ -29,10 +28,6 @@ export class AppComponent {
 
     if (this.isLoggedIn) {
       const user = this.storageService.getUser();
-      this.roles = user.roles;
-
-      this.showAdminBoard = this.roles.includes('ROLE_ADMIN');
-      this.showModeratorBoard = this.roles.includes('ROLE_MODERATOR');
 
       this.username = user.email;
     }

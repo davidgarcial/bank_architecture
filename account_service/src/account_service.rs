@@ -195,7 +195,7 @@ impl AccountService for MyAccountService {
         let update = doc! {
             "$set": {
                 "balance": req.balance,
-                "updated_at": Bson::DateTime(bson::DateTime::now())
+                //"updated_at": Bson::DateTime(bson::DateTime::now()) TODO
             }
         };
 
@@ -216,9 +216,6 @@ impl AccountService for MyAccountService {
         let mut response = UpdateAccountResponse { account: None };
 
         if let Some(account_doc) = account_doc_option {
-            let created_at = account_doc.get_datetime("created_at").unwrap();
-            let updated_at = account_doc.get_datetime("updated_at").unwrap();
-
             let account = account::Account {
                 account_id: account_doc.get_object_id("_id").unwrap().to_string(),
                 user_id: account_doc.get_str("user_id").unwrap().to_string(),
@@ -226,14 +223,8 @@ impl AccountService for MyAccountService {
                     .unwrap() as i32,
                 account_name: account_doc.get_str("account_name").unwrap().to_string(),
                 balance: account_doc.get_f64("balance").unwrap(),
-                created_at: Some(Timestamp {
-                    seconds: created_at.timestamp_millis() / 1_000,
-                    nanos: ((created_at.timestamp_millis() % 1_000) * 1_000_000) as i32,
-                }),
-                updated_at: Some(Timestamp {
-                    seconds: updated_at.timestamp_millis() / 1_000,
-                    nanos: ((updated_at.timestamp_millis() % 1_000) * 1_000_000) as i32,
-                }),
+                created_at: None,
+                updated_at: None
             };
             response.account = Some(account);
             // Log the successful account update
@@ -274,11 +265,11 @@ impl AccountService for MyAccountService {
             .map_err(|e| Status::internal(format!("Failed to get historical: {}", e)))?
         {
             let account = Account {
-                account_id: result.get_str("account_id").unwrap().to_string(),
+                account_id: result.get_object_id("_id").unwrap().to_string(),
                 user_id: result.get_str("user_id").unwrap().to_string(),
-                account_type: match result.get_i32("transaction_type").unwrap() {
-                    0 => AccountType::Checking as i32,
-                    1 => AccountType::Savings as i32,
+                account_type: match result.get_str("account_type").unwrap() {
+                    "CHECKING" => AccountType::Checking as i32,
+                    "SAVINGS" => AccountType::Savings as i32,
                     _ => return Err(Status::internal("Invalid account type")),
                 },
                 balance: result.get_f64("balance").unwrap(),

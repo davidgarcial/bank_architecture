@@ -20,7 +20,7 @@ async fn health_checker_handler(_: jwt_auth::JwtMiddleware) -> impl Responder {
     HttpResponse::Ok().json(json!({"status": "success", "message": MESSAGE}))
 }
 
-#[post("/create")]
+#[post("create")]
 async fn create_account_handler(
     req: HttpRequest,
     body: web::Json<Account>,
@@ -66,13 +66,13 @@ async fn create_account_handler(
     }
 }
 
-#[get("/{account_id}")]
+#[get("{account_id}")]
 async fn get_account_handler(
     account: web::Path<String>,
     data: web::Data<AppState>,
     _: jwt_auth::JwtMiddleware,
 ) -> impl Responder {
-    info!("Getting account with ID: {}", account);
+    info!("Getting account with ID: {}",  account);
 
     let mut grpc_client = data.account_grpc_client.clone();
 
@@ -103,20 +103,22 @@ async fn get_account_handler(
     }
 }
 
-#[get("/accounts/{user_id}")]
+#[get("accounts")]
 async fn get_accounts_handler(
-    user: web::Path<String>,
+    req: HttpRequest,
     data: web::Data<AppState>,
     _: jwt_auth::JwtMiddleware,
 ) -> impl Responder {
-    info!("Getting account with user ID: {}", user);
+    let ext = req.extensions();
+    let user_id = ext.get::<uuid::Uuid>().unwrap();
+
+    info!("Getting account with user ID: {}", user_id);
 
     let mut grpc_client = data.account_grpc_client.clone();
 
-    let user_id = user.into_inner();
     let result = grpc_client
         .get_user_accounts(tonic::Request::new(GetUserAccountsRequest {
-            user_id: user_id.clone(),
+            user_id: user_id.to_string().clone(),
         }))
         .await;
 
@@ -151,7 +153,7 @@ async fn get_accounts_handler(
     }
 }
 
-#[put("/update")]
+#[put("update")]
 async fn update_account_handler(
     account: web::Json<UpdateAccountRequestModel>,
     data: web::Data<AppState>,
@@ -175,7 +177,7 @@ async fn update_account_handler(
                 "user_id": account.user_id,
                 "account_name": account.account_name,
                 "account_type": account.account_type,
-                "": account.account_name,
+                "account_name": account.account_name,
                 "balance": account.balance
             })});
             HttpResponse::Ok().json(account_response)
@@ -193,6 +195,7 @@ pub fn config(conf: &mut web::ServiceConfig) {
         .service(health_checker_handler)
         .service(create_account_handler)
         .service(update_account_handler)
+        .service(get_accounts_handler)
         .service(get_account_handler);
     conf.service(scope);
 }

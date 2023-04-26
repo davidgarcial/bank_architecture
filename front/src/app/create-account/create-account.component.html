@@ -1,0 +1,22 @@
+<mat-card>
+  <mat-card-title>Create Account</mat-card-title>
+  <mat-card-content>
+    <form [formGroup]="createAccountForm" (ngSubmit)="onSubmit()">
+      <mat-form-field appearance="fill">
+        <mat-label>Account Type</mat-label>
+        <mat-select formControlName="accountType">
+          <mat-option *ngFor="let type of accountTypes" [value]="type">{{ type }}</mat-option>
+        </mat-select>
+      </mat-form-field>
+      <mat-form-field appearance="fill">
+        <mat-label>Account Name</mat-label>
+        <input matInput formControlName="accountName" />
+      </mat-form-field>
+      <div class="form-actions">
+        <button mat-flat-button color="primary" type="submit" [disabled]="createAccountForm.invalid">
+          Create Account
+        </button>
+      </div>
+    </form>
+  </mat-card-content>
+</mat-card>

@@ -14,7 +14,7 @@ async fn health_checker_handler(_: jwt_auth::JwtMiddleware) -> impl Responder {
     HttpResponse::Ok().json(json!({"status": "success", "message": MESSAGE}))
 }
 
-#[post("/withdraw")]
+#[post("")]
 async fn withdraw_handler(
     body: web::Json<WithdrawalRequest>,
     data: web::Data<AppState>,

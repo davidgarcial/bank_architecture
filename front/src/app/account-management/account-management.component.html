@@ -1,0 +1,17 @@
+<div class="account-managment-container">
+  <h2>Account Management</h2>
+  <button mat-raised-button color="primary" (click)="openCreateAccountDialog()">
+    Create Account
+  </button>
+  <app-account-list (accountSelected)="onAccountSelected($event)"></app-account-list>
+  <div *ngIf="selectedAccount">
+    <button
+      mat-raised-button
+      color="accent"
+      (click)="openTransactionHistoryDialog(selectedAccount)"
+    >
+      View Transaction History
+    </button>
+  </div>
+</div>
+

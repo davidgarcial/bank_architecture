@@ -1,0 +1,26 @@
+.account-list-container {
+  width: 100%;
+  max-width: 500px;
+  margin: 0 auto; 
+}
+
+mat-list-item {
+  display: flex;
+  height: auto;
+  align-items: center;
+  flex-direction: row; // Add this line to make content in a row
+  cursor: pointer;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.12);
+  padding: 16px;
+  h4, p {
+    color: black; // Add this line to make the font color black
+  }
+}
+
+mat-list-item:hover {
+  background-color: rgba(0, 0, 0, 0.04);
+}
+
+mat-icon { // Add this rule
+  color: black;
+}

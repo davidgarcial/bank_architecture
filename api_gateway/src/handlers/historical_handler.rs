@@ -7,13 +7,13 @@ use actix_web::{get, web, HttpResponse, Responder};
 use log::{error, info};
 use serde_json::json;
 
-#[get("/healthchecker")]
+#[get("healthchecker")]
 async fn health_checker_handler() -> impl Responder {
     const MESSAGE: &str = "JWT Authentication in Rust using Actix-web and Mongodb";
     HttpResponse::Ok().json(json!({"status": "success", "message": MESSAGE}))
 }
 
-#[get("/transactions")]
+#[get("transactions/{account_id}")]
 async fn get_transaction_history_handler(
     account: web::Path<String>,
     data: web::Data<AppState>,

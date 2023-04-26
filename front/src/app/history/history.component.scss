@@ -1,0 +1,16 @@
+:host {
+  display: block;
+}
+
+.transaction-table {
+  width: 100%;
+}
+
+.mat-table {
+  overflow: auto;
+  max-height: 500px;
+}
+
+.transaction-type {
+  text-transform: capitalize;
+}
