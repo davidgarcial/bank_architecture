@@ -1,5 +1,5 @@
 **/target
 **/.env
-front/node_modules
-front/.angular
-front/dist
+simple_bank_ui/node_modules
+simple_bank_ui/.angular
+simple_bank_ui/dist

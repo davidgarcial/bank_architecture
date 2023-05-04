@@ -3,6 +3,14 @@ version: '3.8'
 x-project-name: simple_bank
 
 services:
+  angular_app:
+    build:
+      context: ./front
+      dockerfile: Dockerfile
+    container_name: angular_app
+    ports:
+      - "4200:80"
+
   api_gateway:
     build: ./api_gateway
     container_name: api_gateway

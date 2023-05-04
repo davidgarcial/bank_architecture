@@ -34,6 +34,8 @@ export class CreateAccountComponent implements OnInit {
           console.error(error);
         }
       );
+
+      window.location.reload();
     }
   }
 }

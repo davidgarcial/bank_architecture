@@ -4,7 +4,8 @@
     <mat-list-item style="height: auto;" *ngFor="let account of accounts" (click)="selectAccount(account)">
       <mat-icon mat-list-icon>account_balance</mat-icon>
       <h4 mat-line>{{ account.account_name }}</h4>
-      <p mat-line>Account Type: {{ account.account_type }}</p>
+      <p mat-line>Account Id: {{ account.account_id }}</p>
+      <p mat-line>Account Type: {{ account.account_type === 0 ? 'Checking' : 'Savings' }}</p>
       <p mat-line>Balance: {{ account.balance }}</p>
     </mat-list-item>
   </mat-list>

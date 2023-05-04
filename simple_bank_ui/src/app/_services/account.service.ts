@@ -34,6 +34,6 @@ export class AccountService {
   }
 
   getTransactionHistory(accountId: string): Observable<any> {
-    return this.http.get(API_URL + 'transactions/' + accountId);
+    return this.http.get('http://localhost:5000/api/history/transactions/' + accountId);
   }
 }

@@ -51,8 +51,7 @@ async fn get_transaction_history_handler(
                         "transaction_id": transaction.transaction_id,
                         "account_id": transaction.account_id,
                         "transaction_type": transaction.transaction_type,
-                        "amount": transaction.amount,
-                        "timestamp": transaction.timestamp
+                        "amount": transaction.amount
                     })
                 })
                 .collect();

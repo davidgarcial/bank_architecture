@@ -1,6 +1,4 @@
-use bson::Bson;
 use log::{error, info};
-use prost_types::Timestamp;
 use tonic::{Request, Response, Status};
 use futures::stream::TryStreamExt;
 

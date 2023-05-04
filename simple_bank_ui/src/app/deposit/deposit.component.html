@@ -1,7 +1,7 @@
 <div class="container">
   <div class="row">
     <div class="col-md-6">
-      <h3>Withdraw</h3>
+      <h3>Deposit</h3>
       <form (submit)="onSubmit()">
         <div class="form-group">
           <label for="selectedAccount">Select Account</label>
@@ -10,11 +10,26 @@
           </select>
         </div>
         <div class="form-group">
+          <label for="toAccountId">To Account ID</label>
+          <input type="text" class="form-control" id="toAccountId" [(ngModel)]="depositRequest.to_account_id" name="toAccountId" required>
+        </div>
+        <div class="form-group">
           <label for="amount">Amount</label>
-          <input type="number" class="form-control" id="amount" [(ngModel)]="withdrawalRequest.amount" name="amount" required>
+          <input type="number" class="form-control" id="amount" [(ngModel)]="depositRequest.amount" name="amount" required>
         </div>
         <button type="submit" class="btn btn-primary mt-3">Submit</button>
       </form>
     </div>
   </div>
 </div>
+
+<!-- Add this at the bottom of the file -->
+<ng-template #successModal>
+  <div mat-dialog-content>
+    <h2>Success</h2>
+    <p>Deposit successful.</p>
+  </div>
+  <div mat-dialog-actions>
+    <button mat-button mat-dialog-close (click)="redirectToAccount()">Close</button>
+  </div>
+</ng-template>

@@ -52,10 +52,10 @@ impl DepositService for MyDepositService {
             .map_err(|_| Status::invalid_argument("Invalid to account id"))?;
 
         let from_filter = doc! {
-            "_id": from_account_id.clone(),
+            "_id": from_account_id.clone()
         };
         let to_filter = doc! {
-            "_id": to_account_id.clone(),
+            "_id": to_account_id.clone()
         };
 
         let from_account_doc_option = accounts_collection
@@ -100,17 +100,34 @@ impl DepositService for MyDepositService {
                         Status::internal(format!("Failedto update to account balance: {}", e))
                     })?;
                 // Record the transaction
-                let new_transaction = doc! {
+
+                let new_transaction_deposit = doc! {
                     "from_account_id": from_account_id,
                     "to_account_id": to_account_id,
                     "amount": req.amount,
                     "type": "Deposit",
+                    "account_id": to_account_id
+                };
+
+                let new_transaction_withdrawal = doc! {
+                    "from_account_id": from_account_id,
+                    "to_account_id": to_account_id,
+                    "amount": -req.amount,
+                    "type": "Withdrawal",
+                    "account_id": to_account_id
                 };
 
                 let transactions_collection: Collection<Document> =
                     self.db.collection("transactions");
                 let _insert_result = transactions_collection
-                    .insert_one(new_transaction, None)
+                    .insert_one(new_transaction_deposit, None)
+                    .await
+                    .map_err(|e| {
+                        Status::internal(format!("Failed to create transaction: {}", e))
+                    })?;
+
+                let _insert_result = transactions_collection
+                    .insert_one(new_transaction_withdrawal, None)
                     .await
                     .map_err(|e| {
                         Status::internal(format!("Failed to create transaction: {}", e))

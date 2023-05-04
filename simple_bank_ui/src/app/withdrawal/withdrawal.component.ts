@@ -1,5 +1,7 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, ViewChild, TemplateRef } from '@angular/core';
+import { MatDialog } from '@angular/material/dialog';
 import { HttpClient } from '@angular/common/http';
+import { Router } from '@angular/router';
 
 interface WithdrawalRequest {
   account_id: string;
@@ -17,6 +19,8 @@ interface Account {
   styleUrls: ['./withdrawal.component.scss']
 })
 export class WithdrawalComponent implements OnInit {
+  @ViewChild('successModal', { static: false }) successModal!: TemplateRef<any>;
+  
   withdrawalRequest: WithdrawalRequest = {
     account_id: '',
     amount: 0,
@@ -24,23 +28,22 @@ export class WithdrawalComponent implements OnInit {
   accounts: Account[] = [];
   selectedAccount: Account | null = null;
 
-  constructor(private http: HttpClient) { }
+  constructor(private http: HttpClient, private router: Router, public dialog: MatDialog) { }
 
   async ngOnInit(): Promise<void> {
     await this.fetchAccounts();
   }
 
   private async fetchAccounts(): Promise<void> {
-    const user_id = 'example_user_id'; // Replace with the actual user ID
-    const apiUrl = `http://localhost:8000/accounts/${user_id}`; // Replace with your actual API URL
+    const apiUrl = `http://localhost:5000/api/account/accounts`; // Replace with your actual API URL
 
     try {
-      const response = await this.http.get<Account[]>(apiUrl).toPromise();
+      const response = await this.http.get<{ accounts: any[] }>(apiUrl).toPromise(); 
 
       if (!response)
         return;
-        
-      this.accounts = response;
+
+      this.accounts = response.accounts;
       this.selectedAccount = this.accounts[0];
       this.withdrawalRequest.account_id = this.selectedAccount.account_id;
     } catch (error) {
@@ -53,11 +56,22 @@ export class WithdrawalComponent implements OnInit {
   }
 
   onSubmit(): void {
-    const apiUrl = 'http://localhost:8000/withdraw'; // Replace with your actual API URL
+    const apiUrl = 'http://localhost:5000/api/bank/withdraw'; // Replace with your actual API URL
 
     this.http.post(apiUrl, this.withdrawalRequest).subscribe(
-      (response) => console.log('Withdrawal successful:', response),
+      (response) => {
+        console.log('Withdrawal successful:', response);
+        this.openSuccessModal();
+      },
       (error) => console.error('Error during withdrawal:', error)
     );
+  }
+
+  openSuccessModal(): void {
+    this.dialog.open(this.successModal);
+  }
+
+  redirectToAccount(): void {
+    this.router.navigate(['/account']);
   }
 }
